@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: write
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup StyLua
+        uses: JohnnyMorganz/stylua-action@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          args: --check .
+
+  validate-plugin:
+    name: Validate Plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Neovim
+        uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: 'v0.10.2'
+
+      - name: Test plugin load
+        run: |
+          nvim --headless --noplugin -u test/minimal_init.lua -c "lua require('claude-code').setup()" -c "q"
+
+      - name: Validate Lua syntax
+        run: |
+          find lua -name "*.lua" -exec lua -l {} \;
+

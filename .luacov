@@ -1,0 +1,27 @@
+-- LuaCov configuration for claude-code.nvim
+
+return {
+  -- Include patterns
+  include = {
+    "lua/claude%-code/.*%.lua$"
+  },
+  
+  -- Exclude patterns
+  exclude = {
+    "test/.*",
+    "spec/.*"
+  },
+  
+  -- Report configuration
+  reportfile = "luacov.report.out",
+  statsfile = "luacov.stats.out",
+  
+  -- Output configuration
+  runreport = true,
+  deletestats = false,
+  
+  -- Coverage thresholds
+  codefmt = {
+    max_columns = 120
+  }
+}

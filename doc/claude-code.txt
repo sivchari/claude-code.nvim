@@ -1,0 +1,163 @@
+*claude-code.txt*  Neovim plugin for Claude Code with worktree support
+
+CONTENTS                                                    *claude-code-contents*
+
+1. Introduction ................ |claude-code-introduction|
+2. Installation ................ |claude-code-installation|
+3. Commands .................... |claude-code-commands|
+4. Mappings .................... |claude-code-mappings|
+5. Configuration ............... |claude-code-configuration|
+6. Worktree Features ........... |claude-code-worktree|
+7. Monitor ..................... |claude-code-monitor|
+8. nvim-tree Integration ....... |claude-code-nvim-tree|
+
+==============================================================================
+INTRODUCTION                                            *claude-code-introduction*
+
+claude-code.nvim is a streamlined Neovim plugin for seamlessly using Claude 
+Code with git worktree support. Each git worktree gets its own independent 
+Claude instance, allowing you to work on multiple features simultaneously
+with separate Claude conversation histories.
+
+==============================================================================
+INSTALLATION                                            *claude-code-installation*
+
+Using lazy.nvim:
+>lua
+    {
+      "sivchari/claude-code.nvim",
+      config = function()
+        require("claude-code").setup()
+      end
+    }
+<
+
+Using packer.nvim:
+>lua
+    use {
+      "sivchari/claude-code.nvim",
+      config = function()
+        require("claude-code").setup()
+      end
+    }
+<
+
+==============================================================================
+COMMANDS                                                    *claude-code-commands*
+
+*:Claude*
+    Toggle the Claude Code window. Automatically manages per-worktree sessions.
+
+*:ClaudeWorktreeCreate* [branch]
+    Create a new git worktree. If no branch name is provided, you'll be
+    prompted to enter one.
+
+*:ClaudeWorktreeSwitch*
+    Switch to a different worktree using a picker interface.
+
+*:ClaudeWorktreeRemove*
+    Remove a worktree with confirmation. Cannot remove the current worktree.
+
+==============================================================================
+MAPPINGS                                                    *claude-code-mappings*
+
+Default mappings:
+
+<leader>cc    Toggle Claude Code window (main function)
+<leader>cl    Show all Claude sessions status  
+<leader>cm    Toggle real-time sessions monitor
+<leader>cw    Switch between worktrees
+
+nvim-tree Integration:
+gwa           Create new worktree
+gws           Switch to different worktree  
+gwr           Remove worktree
+gwn           Quick: create new worktree and switch
+
+==============================================================================
+CONFIGURATION                                        *claude-code-configuration*
+
+Default configuration:
+>lua
+    require("claude-code").setup({
+      width = 0.5,          -- Claude terminal width (50% of screen)
+      height = 1,           -- Claude terminal height (full height)
+      position = "right",   -- Terminal position
+      cmd = "claude",       -- Claude CLI command
+      mappings = {
+        toggle = "<leader>cc", -- Main toggle keymap
+      },
+      auto_scroll = true,
+      start_in_insert = true,
+    })
+<
+
+Custom configuration example:
+>lua
+    require("claude-code").setup({
+      width = 0.6,          -- Wider Claude terminal
+      mappings = {
+        toggle = "<leader>ai", -- Custom keymap
+      },
+    })
+<
+
+==============================================================================
+WORKTREE FEATURES                                       *claude-code-worktree*
+
+Per-worktree Claude sessions:
+- Each git worktree maintains its own independent Claude CLI session
+- Separate conversation history for each worktree
+- Automatic context switching when changing worktrees
+- Sessions persist until you explicitly close them
+
+Session Management:
+- Sessions are automatically created when you first toggle Claude in a worktree
+- Use |:ClaudeWorktreeSwitch| to change between worktrees
+- Claude context automatically updates when switching
+
+==============================================================================
+MONITOR                                                 *claude-code-monitor*
+
+Real-time Session Monitor (<leader>cm):
+
+The monitor shows all Claude sessions with their status:
+● = Claude CLI running
+◑ = Claude waiting for user input
+◐ = Terminal ready (Claude not active)  
+○ = No session
+* = Currently visible session
+
+Example monitor display:
+>
+┌─ Claude Sessions ─┐
+│ ● feature-1      │  ← Claude running
+│ ◑ feature-2      │  ← Waiting for input
+│ ◐ main           │  ← Terminal ready
+│ ○ hotfix         │  ← No session
+│ ●* dev           │  ← Running & visible
+├─────────────────┤
+│ ● Running       │  ← Legend
+│ ◑ Waiting       │
+│ ◐ Ready         │
+│ ○ None          │
+│ * Visible       │
+└─────────────────┘
+<
+
+The monitor auto-refreshes every 2 seconds and can be toggled with <leader>cm.
+
+==============================================================================
+NVIM-TREE INTEGRATION                                   *claude-code-nvim-tree*
+
+When nvim-tree is available, additional keymaps are added in nvim-tree buffers:
+
+gwa    Create new worktree
+gws    Switch to different worktree
+gwr    Remove worktree  
+gwn    Quick: create new worktree and switch
+
+These keymaps provide convenient worktree management directly from the file
+explorer.
+
+vim:tw=78:ts=8:ft=help:norl:

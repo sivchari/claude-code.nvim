@@ -1,0 +1,28 @@
+# Lua
+*.luac
+
+# Coverage reports
+luacov.*.out
+*.gcda
+*.gcno
+
+# Test artifacts
+test_artifacts/
+
+# Neovim specific
+.netrwhist
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# CI artifacts
+coverage/
+build/
+
+# Package managers
+node_modules/

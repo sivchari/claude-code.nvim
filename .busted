@@ -1,0 +1,12 @@
+return {
+  default = {
+    verbose = true,
+    coverage = true,
+    pattern = "_spec",
+    ROOT = {"."},
+    exclude = {
+      "node_modules",
+      ".git"
+    }
+  }
+}
