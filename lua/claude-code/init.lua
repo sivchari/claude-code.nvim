@@ -65,6 +65,16 @@ function M.setup(opts)
 		end)
 	end, {})
 
+	-- Claude sessions status command
+	vim.api.nvim_create_user_command("ClaudeSessions", function()
+		terminal.show_sessions_status()
+	end, {})
+
+	-- Claude monitor command
+	vim.api.nvim_create_user_command("ClaudeMonitor", function()
+		terminal.toggle_monitor()
+	end, {})
+
 	-- Set up key mappings
 	if M.config.mappings.toggle then
 		vim.keymap.set("n", M.config.mappings.toggle, function()
@@ -135,15 +145,33 @@ function M.toggle()
 		-- Check if we need to switch context even if terminal is visible
 		local info = terminal.get_current_session()
 
-		-- Always check if we need to switch context when session or path changes
+		-- Priority 1: If Claude is running and visible, just keep it running
+		if info.is_claude_running and info.is_visible then
+			-- Claude is running and visible - only update working directory without killing session
+			if info.current_path ~= current_path then
+				-- Just change directory in the existing Claude session (gently)
+				terminal.switch_context(info.session_id, current_path)
+			end
+			-- Don't toggle - terminal is already visible and focused
+			return
+		end
+
+		-- Priority 2: If Claude is running but hidden, just show the existing session
+		if info.is_claude_running and not info.is_visible then
+			-- Show the existing Claude session without changing context
+			terminal.show(info.session_id, info.current_path, false) -- no force_context_change
+			return
+		end
+
+		-- Priority 3: Handle normal toggle/show for non-Claude or new sessions
 		if not info.session_id or info.session_id ~= session_id or info.current_path ~= current_path then
-			-- Always switch context for different sessions
+			-- Only switch sessions when absolutely necessary
 			if info.is_visible then
-				-- If terminal is visible, just switch context without toggling
+				-- If terminal is visible but different session/path, switch context
 				terminal.switch_context(session_id, current_path)
 			else
-				-- If terminal is hidden, show it with new context (but prevent auto session update)
-				terminal.show(session_id, current_path, true) -- pass force_context_change flag
+				-- If terminal is hidden, show it with context
+				terminal.show(session_id, current_path, true)
 			end
 		else
 			-- Same session, just toggle normally
@@ -153,11 +181,22 @@ function M.toggle()
 				terminal.clear_input_line()
 				vim.wait(50)
 			end
-			terminal.toggle(session_id, current_path) -- Use current path instead of worktree.path
+			terminal.toggle(session_id, current_path)
 		end
 	else
 		-- Fallback to simple terminal
 		local info = terminal.get_current_session()
+
+		-- If Claude is running, preserve it
+		if info.is_claude_running then
+			if info.is_visible then
+				return -- Already visible, do nothing
+			else
+				terminal.show(info.session_id, info.current_path, false) -- Show existing session
+				return
+			end
+		end
+
 		if info.terminal_valid and not info.is_visible then
 			terminal.clear_input_line()
 			vim.wait(50)

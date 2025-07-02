@@ -234,23 +234,42 @@ function M.switch_context(session_id, worktree_path)
 		return false
 	end
 
-	-- First ensure we're in normal mode in the terminal and clear any partial input
-	M.send_control_char(session_id, 3) -- Ctrl-C to break any running command
-	vim.wait(100)
-	M.clear_input_line(session_id) -- Ctrl-U to clear current line
-	vim.wait(50)
+	-- Check if Claude is currently running - if so, be more gentle
+	local claude_status = M.get_claude_status(session_id)
 
-	-- Send cd command silently, then clear screen
-	M.send_command_silent(string.format("cd %s", vim.fn.shellescape(worktree_path)), session_id)
-	vim.wait(100)
-	M.send_command("clear", session_id)
+	if claude_status == "running" or claude_status == "waiting" then
+		-- Claude is active - only update our internal path tracking
+		-- Don't send cd command as it might interrupt Claude's current operation
+		session.current_path = worktree_path
 
-	session.current_path = worktree_path
+		-- Update title to show current session
+		if M.state.terminal_win and vim.api.nvim_win_is_valid(M.state.terminal_win) then
+			local title = string.format("Claude Terminal - %s", session_id)
+			vim.api.nvim_win_set_config(M.state.terminal_win, { title = title })
+		end
 
-	-- Update title to show current session
-	if M.state.terminal_win and vim.api.nvim_win_is_valid(M.state.terminal_win) then
-		local title = string.format("Claude Terminal - %s", session_id)
-		vim.api.nvim_win_set_config(M.state.terminal_win, { title = title })
+		-- Note: Claude will maintain its own working directory context
+		vim.notify("Claude is active - context updated without changing directory", vim.log.levels.INFO)
+	else
+		-- Terminal is ready or Claude is not running - safe to change directory
+		-- First ensure we're in normal mode in the terminal and clear any partial input
+		M.send_control_char(session_id, 3) -- Ctrl-C to break any running command
+		vim.wait(100)
+		M.clear_input_line(session_id) -- Ctrl-U to clear current line
+		vim.wait(50)
+
+		-- Send cd command silently, then clear screen
+		M.send_command_silent(string.format("cd %s", vim.fn.shellescape(worktree_path)), session_id)
+		vim.wait(100)
+		M.send_command("clear", session_id)
+
+		session.current_path = worktree_path
+
+		-- Update title to show current session
+		if M.state.terminal_win and vim.api.nvim_win_is_valid(M.state.terminal_win) then
+			local title = string.format("Claude Terminal - %s", session_id)
+			vim.api.nvim_win_set_config(M.state.terminal_win, { title = title })
+		end
 	end
 
 	-- Trigger session update event
@@ -433,6 +452,10 @@ function M.show(session_id, worktree_path, force_context_change)
 	-- Only setup context and start claude for new terminals or when session changes
 	local old_path = session.current_path
 
+	-- Check if Claude is already running in this session
+	local claude_status = M.get_claude_status(session_id)
+	local is_claude_running = (claude_status == "running" or claude_status == "waiting")
+
 	if
 		is_new_terminal
 		or force_context_change
@@ -442,20 +465,24 @@ function M.show(session_id, worktree_path, force_context_change)
 		if worktree_path then
 			session.current_path = worktree_path
 		end
+
 		if session_id and worktree_path then
 			-- Small delay to ensure terminal is ready
 			vim.defer_fn(function()
 				M.switch_context(session_id, worktree_path)
-				-- Auto-start claude after context switch with directory verification
-				vim.defer_fn(function()
-					-- Ensure we're in the correct directory before starting claude (silently)
-					M.send_command_silent(string.format("cd %s", vim.fn.shellescape(worktree_path)), session_id)
-					vim.wait(100)
-					M.send_command("claude", session_id)
-				end, 500)
+
+				-- Only auto-start claude if it's not already running
+				if not is_claude_running then
+					vim.defer_fn(function()
+						-- Ensure we're in the correct directory before starting claude (silently)
+						M.send_command_silent(string.format("cd %s", vim.fn.shellescape(worktree_path)), session_id)
+						vim.wait(100)
+						M.send_command("claude", session_id)
+					end, 500)
+				end
 			end, 100)
-		else
-			-- Auto-start claude if no specific context
+		elseif not is_claude_running then
+			-- Auto-start claude if no specific context and not already running
 			vim.defer_fn(function()
 				M.send_command("claude", session_id)
 			end, 300)

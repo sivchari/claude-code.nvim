@@ -2,7 +2,11 @@
 
 A streamlined Neovim plugin for seamlessly using Claude Code with git worktree support.
 
-![Claude Code Demo](https://via.placeholder.com/800x400/1e1e2e/cdd6f4?text=Claude+Code+Demo)
+## 🎬 Demo
+
+![Demo](./assets/demo-showcase.gif)
+
+*Watch the complete workflow: worktree creation, Claude integration, and real-time session management*
 
 ## ✨ Features
 
